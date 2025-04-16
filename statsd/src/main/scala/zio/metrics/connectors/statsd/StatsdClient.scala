@@ -45,9 +45,9 @@ private[connectors] object StatsdClient {
       channel
     })
 
-  private[connectors] def make: ZIO[Scope & StatsdConfig, Nothing, StatsdClient] =
+  private[connectors] def make: ZIO[Scope & StatsdIpConfig, Nothing, StatsdClient] =
     for {
-      config  <- ZIO.service[StatsdConfig]
+      config  <- ZIO.service[StatsdIpConfig]
       channel <- channelIP(config.host, config.port).orDie
       client   = new Live(channel)
     } yield client

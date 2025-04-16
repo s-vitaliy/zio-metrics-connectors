@@ -4,7 +4,7 @@ import zio._
 import zio.internal.RingBuffer
 import zio.metrics.{MetricClient, MetricKey, MetricKeyType}
 import zio.metrics.connectors.internal.MetricsClient
-import zio.metrics.connectors.statsd.{StatsdClient, StatsdConfig}
+import zio.metrics.connectors.statsd.{StatsdClient, StatsdIpConfig}
 
 package object datadog {
 

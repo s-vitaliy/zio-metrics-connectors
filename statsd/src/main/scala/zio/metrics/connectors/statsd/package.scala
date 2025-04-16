@@ -5,7 +5,7 @@ import zio.metrics.connectors.internal.MetricsClient
 
 package object statsd {
 
-  lazy val statsdLayer: ZLayer[StatsdConfig & MetricsConfig, Nothing, Unit] =
+  lazy val statsdLayer: ZLayer[StatsdIpConfig & MetricsConfig, Nothing, Unit] =
     ZLayer.scoped(
       StatsdClient.make.flatMap(clt => MetricsClient.make(statsdHandler(clt))).unit,
     )
