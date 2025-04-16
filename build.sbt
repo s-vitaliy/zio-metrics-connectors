@@ -8,35 +8,7 @@ inThisBuild(
     organization   := "dev.zio",
     homepage       := Some(url("https://zio.dev/zio-metrics-connectors/")),
     licenses       := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
-    developers     := List(
-      Developer(
-        "jdegoes",
-        "John De Goes",
-        "john@degoes.net",
-        url("http://degoes.net"),
-      ),
-      Developer(
-        "softinio",
-        "Salar Rahmanian",
-        "code@softinio.com",
-        url("https://www.softinio.com"),
-      ),
-    ),
-    pgpPassphrase  := sys.env.get("PGP_PASSWORD").map(_.toArray),
-    pgpPublicRing  := file("/tmp/public.asc"),
-    pgpSecretRing  := file("/tmp/secret.asc"),
-    resolvers ++= Seq(
-      "s01 Sonatype OSS Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots",
-      "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-    ),
-    scmInfo        := Some(
-      ScmInfo(
-        url("https://github.com/zio/zio-metrics-connectors/"),
-        "scm:git:git@github.com:zio/zio-metrics-connectors.git",
-      ),
-    ),
-    testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
-  ),
+  )
 )
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
