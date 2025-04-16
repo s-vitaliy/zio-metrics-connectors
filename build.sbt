@@ -1,4 +1,7 @@
-import BuildHelper._
+import BuildHelper.*
+import sbtrelease.ReleaseStateTransformations.{checkSnapshotDependencies, inquireVersions, publishArtifacts, runClean, setReleaseVersion}
+
+import scala.collection.Seq
 
 inThisBuild(
   List(
@@ -38,6 +41,32 @@ inThisBuild(
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
+
+credentials += Credentials(
+  "GitHub Package Registry",
+  "maven.pkg.github.com",
+  sys.env.getOrElse("GITHUB_ACTOR", ""),
+  sys.env.getOrElse("GITHUB_TOKEN", "")
+)
+
+releaseVersionBump := sbtrelease.Version.Bump.Bugfix
+releaseProcess := Seq[ReleaseStep](
+  checkSnapshotDependencies,              // : ReleaseStep
+  inquireVersions,                        // : ReleaseStep
+  runClean,                               // : ReleaseStep
+  setReleaseVersion,                      // : ReleaseStep
+  publishArtifacts,                       // : ReleaseStep
+)
+releaseIgnoreUntrackedFiles := true
+publishTo := {
+  val ghRepo = "s-vitaliy/zio-metrics-connectors"
+  val ghUser = "_"
+  val ghToken = sys.env.get("GITHUB_TOKEN")
+  ghToken.map { token =>
+    "GitHub Package Registry" at s"https://maven.pkg.github.com/$ghRepo"
+  }
+}
+publishMavenStyle := true
 
 lazy val root =
   project
