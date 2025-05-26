@@ -26,20 +26,14 @@ package object newrelic {
     encoder: NewRelicEncoder,
     client: NewRelicClient,
   ): Iterable[MetricEvent] => UIO[Unit] = events => {
-    val evtFilter: MetricEvent => Boolean = {
-      case MetricEvent.Unchanged(_, _, _) => false
-      case _                              => true
-    }
+    val evtFilter: MetricEvent => Boolean = !_.isInstanceOf[MetricEvent.Unchanged]
 
-    val send = ZIO
-      .foreachDiscard(events.filter(evtFilter))(evt =>
-        for {
-          encoded <- encoder.encode(evt).catchAll(_ => ZIO.succeed(Chunk.empty))
-          _       <- ZIO.when(encoded.nonEmpty)(client.send(encoded))
-        } yield (),
-      )
-
-    send
+    ZIO.foreachDiscard(events.filter(evtFilter))(evt =>
+      for {
+        encoded <- encoder.encode(evt).orElseSucceed(Chunk.empty)
+        _       <- ZIO.whenDiscard(encoded.nonEmpty)(client.send(encoded))
+      } yield (),
+    )
 
   }
 

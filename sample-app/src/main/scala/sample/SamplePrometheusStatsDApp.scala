@@ -1,14 +1,14 @@
 package sample
 
+import java.nio.charset.StandardCharsets
+
 import zio._
 import zio.http._
 import zio.http.template.{Dom, Html}
-import zio.metrics.connectors.{MetricsConfig, prometheus, statsd}
+import zio.metrics.connectors.{prometheus, statsd, MetricsConfig}
 import zio.metrics.connectors.prometheus.PrometheusPublisher
 import zio.metrics.connectors.statsd.StatsdConfig
 import zio.metrics.jvm.DefaultJvmMetrics
-
-import java.nio.charset.StandardCharsets
 
 /**
  * This is a sample app that shows how to use the Prometheus and StatsD connectors.
@@ -37,8 +37,8 @@ object SamplePrometheusStatsDApp extends ZIOAppDefault with InstrumentedSample {
           Response(
             status = Status.Ok,
             headers = Headers(Header.Custom(Header.ContentType.name, "text/plain; version=0.0.4")),
-            body = Body.fromString(response, StandardCharsets.UTF_8)
-          )
+            body = Body.fromString(response, StandardCharsets.UTF_8),
+          ),
         )
       }
     }
@@ -46,8 +46,8 @@ object SamplePrometheusStatsDApp extends ZIOAppDefault with InstrumentedSample {
   private def noCors(r: Response): Response =
     r.updateHeaders(_.combine(Headers(("Access-Control-Allow-Origin", "*"))))
 
-  private val httpApp: HttpApp[PrometheusPublisher] =
-    Routes(staticRoute, prometheusRoute).toHttpApp
+  private val httpApp: Routes[PrometheusPublisher, Nothing] =
+    Routes(staticRoute, prometheusRoute)
 
   private lazy val runHttp = (Server.serve(httpApp) *> ZIO.never).forkDaemon
 
@@ -76,6 +76,6 @@ object SamplePrometheusStatsDApp extends ZIOAppDefault with InstrumentedSample {
       // Enable the ZIO internal metrics and the default JVM metricsConfig
       // Do NOT forget the .unit for the JVM metrics layer
       Runtime.enableRuntimeMetrics,
-      DefaultJvmMetrics.live.unit,
+      DefaultJvmMetrics.liveV2.unit,
     )
 }

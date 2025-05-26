@@ -2,11 +2,12 @@ package sample
 
 import zio._
 import zio.http._
+import zio.http.template.{Dom, Html}
 import zio.metrics.connectors.micrometer
 import zio.metrics.connectors.micrometer.MicrometerConfig
 import zio.metrics.jvm.DefaultJvmMetrics
+
 import io.micrometer.prometheus.{PrometheusConfig, PrometheusMeterRegistry}
-import zio.http.template.{Dom, Html}
 
 /**
  * This is a sample app that shows how to use the Micrometer connector.
@@ -34,8 +35,8 @@ object SampleMicrometerApp extends ZIOAppDefault with InstrumentedSample {
   private def noCors(r: Response): Response =
     r.updateHeaders(_.combine(Headers(("Access-Control-Allow-Origin", "*"))))
 
-  private val httpApp: HttpApp[PrometheusMeterRegistry] =
-    Routes(staticRoute, micrometerPrometheusRouter).toHttpApp
+  private val httpApp: Routes[PrometheusMeterRegistry, Nothing] =
+    Routes(staticRoute, micrometerPrometheusRouter)
 
   private lazy val runHttp = (Server.serve(httpApp) *> ZIO.never).forkDaemon
 
@@ -54,6 +55,6 @@ object SampleMicrometerApp extends ZIOAppDefault with InstrumentedSample {
       ZLayer.succeed(MicrometerConfig.default),
       micrometer.micrometerLayer,
       Runtime.enableRuntimeMetrics,
-      DefaultJvmMetrics.live.unit,
+      DefaultJvmMetrics.liveV2.unit,
     )
 }

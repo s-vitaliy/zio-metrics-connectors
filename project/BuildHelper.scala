@@ -14,6 +14,8 @@ object BuildHelper {
     "-language:existentials",
     "-unchecked",
     "-deprecation",
+    "-release",
+    "11",
     // "-Xfatal-warnings"
   )
 
@@ -52,7 +54,7 @@ object BuildHelper {
     "-Xignore-scala2-macros",
   )
 
-  private val silencerVersion = "1.7.13"
+  private val silencerVersion = "1.7.19"
 
   private def extraOptions(scalaVersion: String) =
     CrossVersion.partialVersion(scalaVersion) match {
