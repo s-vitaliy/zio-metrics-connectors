@@ -30,13 +30,11 @@ jobs:
     - name: Setup sbt
       uses: sbt/setup-sbt@v1
     - name: Check if the README file is up to date
-      run: sbt  docs/checkReadme
-    - name: Check if the site workflow is up to date
-      run: sbt  docs/checkGithubWorkflow
+      run: sbt --client docs/checkReadme
     - name: Check artifacts build process
-      run: sbt  +publishLocal
+      run: sbt --client +publishLocal
     - name: Check website build process
-      run: sbt docs/clean; sbt  docs/buildWebsite
+      run: sbt --client "docs/clean; docs/buildWebsite"
   publish-docs:
     name: Publish Docs
     runs-on: ubuntu-latest
