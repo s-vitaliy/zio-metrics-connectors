@@ -1,13 +1,12 @@
 object Version {
-  val Scala211 = "2.11.12"
-  val Scala212 = "2.12.18"
-  val Scala213 = "2.13.11"
-  val Scala3   = "3.3.0"
+  val Scala212 = "2.12.20"
+  val Scala213 = "2.13.16"
+  val Scala3   = "3.3.5"
 
-  val zio     = "2.0.16"
-  val zioJson = "0.5.0"
-  val zioHttp = "3.0.0-RC4"
+  val zio     = "2.1.18"
+  val zioJson = "0.7.43"
+  val zioHttp = "3.3.0"
 
-  val micrometer  = "1.11.0"
-  val scalaCompat = "2.11.0"
+  val micrometer  = "1.15.0"
+  val scalaCompat = "2.13.0"
 }

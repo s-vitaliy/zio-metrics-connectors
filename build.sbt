@@ -51,9 +51,9 @@ lazy val core =
     .settings(
       stdSettings("zio.metrics.connectors"),
       libraryDependencies ++= Seq(
-        "dev.zio" %%% "zio"          % Version.zio,
-        "dev.zio" %%% "zio-test"     % Version.zio % Test,
-        "dev.zio" %%% "zio-test-sbt" % Version.zio % Test,
+        "dev.zio" %% "zio"          % Version.zio,
+        "dev.zio" %% "zio-test"     % Version.zio % Test,
+        "dev.zio" %% "zio-test-sbt" % Version.zio % Test,
       ),
     )
     .settings(buildInfoSettings("zio.metrics.connectors"))
@@ -83,8 +83,8 @@ lazy val newrelic =
     .settings(
       stdSettings("zio.metrics.connectors.newrelic"),
       libraryDependencies ++= Seq(
-        "dev.zio"  %% "zio-http" % "3.0.0-RC2", // TODO: update newrelic client to use `Version.zioHttp`
-        "dev.zio" %%% "zio-json" % Version.zioJson,
+        "dev.zio" %% "zio-http" % Version.zioHttp,
+        "dev.zio" %% "zio-json" % Version.zioJson,
       ),
     )
     .settings(buildInfoSettings("zio.metrics.connectors.newrelic"))
@@ -107,7 +107,7 @@ lazy val sampleApp =
       run / javaOptions += "-Djava.net.preferIPv4Stack=true",
       libraryDependencies ++= Seq(
         "dev.zio"      %% "zio-http"                       % Version.zioHttp,
-        "dev.zio"     %%% "zio-json"                       % Version.zioJson,
+        "dev.zio"      %% "zio-json"                       % Version.zioJson,
         "io.micrometer" % "micrometer-registry-prometheus" % Version.micrometer,
       ),
     )
@@ -140,7 +140,6 @@ lazy val docs = project
     mainModuleName                             := (core / moduleName).value,
     projectStage                               := ProjectStage.Development,
     ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(core),
-    docsPublishBranch                          := "zio/series/2.x",
   )
   .dependsOn(core)
   .enablePlugins(WebsitePlugin)

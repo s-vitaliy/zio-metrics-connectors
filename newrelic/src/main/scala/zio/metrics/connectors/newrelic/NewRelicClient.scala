@@ -14,53 +14,46 @@ object NewRelicClient {
   private[newrelic] def make: ZIO[NewRelicConfig & Client, Nothing, NewRelicClient] = for {
     cfg <- ZIO.service[NewRelicConfig]
     q   <- Queue.bounded[Json](cfg.maxMetricsPerRequest * 2)
-    clt  = new NewRelicClientImpl(cfg, q) {}
+    url <- ZIO.fromEither(URL.decode(cfg.newRelicURI.endpoint)).orDie
+    clt  = new NewRelicClientImpl(cfg, url, q)
     _   <- clt.run
   } yield clt
 
-  sealed abstract private class NewRelicClientImpl(
+  final private class NewRelicClientImpl(
     cfg: NewRelicConfig,
+    uri: URL,
     publishingQueue: Queue[Json],
   )(implicit trace: Trace)
       extends NewRelicClient {
 
-    override private[newrelic] def send(json: Chunk[Json]) =
+    override private[newrelic] def send(json: Chunk[Json]): UIO[Unit] =
       publishingQueue.offerAll(json).unit
 
-    private def sendHttp(json: Chunk[Json]) =
-      ZIO
-        .fromEither {
-          val body = Json
-            .Arr(
-              Json.Obj("metrics" -> Json.Arr(json.toSeq: _*)),
-            )
-            .toString
-
-          URL.decode(cfg.newRelicURI.endpoint).map { url =>
-            Request
-              .post(
-                url = url,
-                body = Body.fromString(body),
-              )
-              .addHeaders(headers)
-          }
+    private def sendHttp(client: Client)(json: Chunk[Json]): Task[Unit] =
+      ZIO.whenDiscard(json.nonEmpty) {
+        val body = Json.Arr(Json.Obj("metrics" -> Json.Arr(json))).toString
+        client.batched {
+          Request
+            .post(url = uri, body = Body.fromString(body))
+            .addHeaders(headers)
         }
-        .flatMap(request => Client.request(request).unit)
-        .when(json.nonEmpty)
+      }
 
-    private[newrelic] def run =
-      ZStream
-        .fromQueue(publishingQueue)
-        .groupedWithin(cfg.maxMetricsPerRequest, cfg.maxPublishingDelay)
-        .mapZIO(sendHttp)
-        .runDrain
-        .forkDaemon
-        .unit
+    private[newrelic] def run: ZIO[Client, Nothing, Unit] =
+      ZIO.serviceWithZIO[Client] { client =>
+        ZStream
+          .fromQueue(publishingQueue)
+          .groupedWithin(cfg.maxMetricsPerRequest, cfg.maxPublishingDelay)
+          .mapZIO(sendHttp(client))
+          .runDrain
+          .forkDaemon
+          .unit
+      }
 
     private lazy val headers = Headers(
-      Header.Custom("Api-Key", cfg.apiKey),
-      Header.ContentType(MediaType.application.json),
-      Header.Accept(MediaType.any),
+      Header.Custom("Api-Key", cfg.apiKey).untyped,
+      Header.ContentType(MediaType.application.json).untyped,
+      Header.Accept(MediaType.any).untyped,
     )
   }
 }

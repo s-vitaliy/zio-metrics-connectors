@@ -1,7 +1,5 @@
 package zio.metrics.connectors.internal
 
-import scala.annotation.nowarn
-
 import zio._
 import zio.internal.metrics.metricRegistry
 import zio.metrics._
@@ -55,7 +53,6 @@ sealed abstract private class MetricsClient(
   private def events(
     oldState: Map[MetricKey.Untyped, MetricState.Untyped],
     metrics: Set[MetricPair.Untyped],
-  )(implicit @nowarn trace: Trace,
   ): Set[MetricEvent] =
     metrics
       .map { mp =>
