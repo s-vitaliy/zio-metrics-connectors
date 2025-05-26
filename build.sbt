@@ -69,7 +69,10 @@ lazy val statsd =
 lazy val datadog =
   project
     .in(file("datadog"))
-    .settings(stdSettings("zio.metrics.connectors.datadog"))
+    .settings(
+      stdSettings("zio.metrics.connectors.datadog"),
+      libraryDependencies ++= Seq("com.github.jnr" % "jnr-unixsocket" % "0.38.23"),
+    )
     .settings(buildInfoSettings("zio.metrics.connectors.datadog"))
     .enablePlugins(BuildInfoPlugin)
     .dependsOn(

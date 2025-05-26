@@ -11,7 +11,7 @@ import zio.metrics.connectors.statsd.StatsdClient
 object DataDogEventProcessor {
 
   def make(
-    client: StatsdClient,
+    client: DogStatsdClient,
     queue: RingBuffer[(MetricKey[MetricKeyType.Histogram], Double)],
   ): ZIO[DatadogConfig & MetricsConfig, Nothing, Unit] =
     for {

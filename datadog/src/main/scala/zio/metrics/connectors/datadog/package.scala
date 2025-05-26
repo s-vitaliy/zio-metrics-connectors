@@ -4,7 +4,6 @@ import zio._
 import zio.internal.RingBuffer
 import zio.metrics.{MetricClient, MetricKey, MetricKeyType}
 import zio.metrics.connectors.internal.MetricsClient
-import zio.metrics.connectors.statsd.{StatsdClient, StatsdConfig}
 
 package object datadog {
 
@@ -12,7 +11,7 @@ package object datadog {
     ZLayer.scoped(
       for {
         config  <- ZIO.service[DatadogConfig]
-        clt     <- StatsdClient.make.provideSome[Scope](ZLayer.succeed(StatsdConfig(config.host, config.port)))
+        clt     <- DogStatsdClient.make.provideSome[Scope](ZLayer.succeed(config))
         queue    = RingBuffer.apply[(MetricKey[MetricKeyType.Histogram], Double)](config.maxQueueSize)
         listener = new DataDogListener(queue)
         _       <- Unsafe.unsafe(unsafe =>
@@ -34,7 +33,7 @@ package object datadog {
     }
 
   private[connectors] def datadogHandler(
-    client: StatsdClient,
+    client: DogStatsdClient,
     config: DatadogConfig,
   ): Iterable[MetricEvent] => UIO[Unit] = events => {
     val encoder = DatadogEncoder.encoder(config)
