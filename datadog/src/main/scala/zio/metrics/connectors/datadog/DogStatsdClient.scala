@@ -64,9 +64,8 @@ private[connectors] object DogStatsdClient {
     for {
       config <- ZIO.service[DatadogConfig]
       writer <- config match {
-                  case c: DatadogNetworkConfig   => networkWriter(c.host, c.port).orDie
-                  case c: DatadogUdsConfig => udsWriter(c.path).orDie
-
+                  case c: DatadogNetworkConfig => networkWriter(c.host, c.port).orDie
+                  case c: DatadogUdsConfig     => udsWriter(c.path).orDie
                 }
       client  = new Live(writer)
     } yield client
