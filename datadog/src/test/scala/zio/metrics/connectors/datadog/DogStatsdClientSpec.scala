@@ -59,6 +59,13 @@ object DogStatsdClientSpec extends ZIOSpecDefault {
     } yield assertTrue(result == "testMetric:1|g")
   } @@ TestAspect.around(clearUnixDomainSocket, clearUnixDomainSocket)
 
+  /**
+   * Retrieves the temporary path for the Unix domain socket.
+   * If the system property `java.io.tmpdir` is not set, defaults to `/tmp/dogstatsd.sock`.
+   * This method is used to ensure that the socket path is consistent across different environments and
+   * the socket path can be overridden if needed.
+   * @return A ZIO effect that returns the path as a String
+   */
   private def getTempPath = for {
     maybePath <- System.property("java.io.tmpdir")
   } yield maybePath match {
@@ -66,15 +73,28 @@ object DogStatsdClientSpec extends ZIOSpecDefault {
     case path => s"$path/dogstatsd.sock"
   }
 
+  /**
+   * Clears the Unix domain socket by deleting the file at the temporary path.
+   * This method is used to ensure that the socket is not left in an inconsistent state and adds the
+   * ability to run tests multiple times without interference.
+   * @return A ZIO effect that completes when the socket is cleared
+   */
   private def clearUnixDomainSocket: ZIO[Any, Nothing, Unit] =
     for {
       path <- getTempPath.orDie
       _    <- ZIO.succeed(Files.deleteIfExists(Path.of(path)))
     } yield ()
 
-  private def testServer(createChannel: Task[DatagramChannel], promise: Promise[Nothing, Unit]) =
+  /**
+   * Creates a test server that listens for incoming datagrams on the specified channel.
+   * Signals completion via the provided promise when the server is ready.
+   * @param channel ZIO effect to create a DatagramChannel
+   * @param promise Promise to signal when the server is ready
+   * @return A ZIO effect that returns the server's response as a String
+   */
+  private def testServer(channel: Task[DatagramChannel], promise: Promise[Nothing, Unit]) =
     for {
-      channel <- createChannel
+      channel <- channel
       buffer  <- ZIO.succeed(ByteBuffer.allocate(1024))
       server  <- ZIO.attempt {
                    channel.receive(buffer)
