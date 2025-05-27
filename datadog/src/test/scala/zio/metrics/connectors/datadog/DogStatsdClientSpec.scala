@@ -20,6 +20,7 @@ object DogStatsdClientSpec extends ZIOSpecDefault {
 
   private val writeViaNetwork = test("be able to write data using network") {
     for {
+      // Arrange
       address <- ZIO.attempt(new InetSocketAddress("localhost", 0))
       promise <- Promise.make[Nothing, Unit]
       channel <- ZIO.attempt {
@@ -35,13 +36,17 @@ object DogStatsdClientSpec extends ZIOSpecDefault {
                    ZIO.succeed(channel),
                    promise,
                  )
+      // Act
       _       <- ZIO.attempt(client.send(Chunk.fromArray("testMetric:1|g".getBytes)))
       result  <- server.join
+
+      // Assert
     } yield assertTrue(result == "testMetric:1|g")
   }
 
   private val writeViaUds = test("be able to write data to unix domain socket") {
     for {
+      // Arrange
       promise    <- Promise.make[Nothing, Unit]
       socketPath <- getTempPath
       client     <- DogStatsdClient.make.provideSome[Scope](ZLayer.succeed(DatadogUdsConfig(socketPath)))
@@ -54,8 +59,12 @@ object DogStatsdClientSpec extends ZIOSpecDefault {
                       promise,
                     )
       _          <- promise.await
-      _          <- ZIO.attempt(client.send(Chunk.fromArray("testMetric:1|g".getBytes)))
-      result     <- server.join
+
+      // Act
+      _      <- ZIO.attempt(client.send(Chunk.fromArray("testMetric:1|g".getBytes)))
+      result <- server.join
+
+      // Assert
     } yield assertTrue(result == "testMetric:1|g")
   } @@ TestAspect.around(clearUnixDomainSocket, clearUnixDomainSocket)
 
