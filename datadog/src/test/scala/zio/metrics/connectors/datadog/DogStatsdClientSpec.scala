@@ -20,14 +20,19 @@ object DogStatsdClientSpec extends ZIOSpecDefault {
 
   private val writeViaNetwork = test("be able to write data using network") {
     for {
+      address <- ZIO.attempt(new InetSocketAddress("localhost", 0))
       promise <- Promise.make[Nothing, Unit]
-      client  <- DogStatsdClient.make.provideSome[Scope](ZLayer.succeed(DatadogNetworkConfig("localhost", 8181)))
+      channel <- ZIO.attempt {
+                   val ch = DatagramChannel.open()
+                   ch.bind(address)
+                   ch
+                 }
+      port     = channel.getLocalAddress.asInstanceOf[InetSocketAddress].getPort
+      client  <- DogStatsdClient.make.provideSome[Scope](
+                   ZLayer.succeed(DatadogNetworkConfig(address.getHostString, port)),
+                 )
       server  <- testServer(
-                   ZIO.attempt {
-                     val ch = DatagramChannel.open()
-                     ch.bind(new InetSocketAddress("localhost", 8181))
-                     ch
-                   },
+                   ZIO.succeed(channel),
                    promise,
                  )
       _       <- ZIO.attempt(client.send(Chunk.fromArray("testMetric:1|g".getBytes)))
@@ -39,7 +44,7 @@ object DogStatsdClientSpec extends ZIOSpecDefault {
     for {
       promise    <- Promise.make[Nothing, Unit]
       socketPath <- getTempPath
-      client     <- DogStatsdClient.make.provideSome[Scope](ZLayer.succeed(DatadogUdsConfigConfig(socketPath)))
+      client     <- DogStatsdClient.make.provideSome[Scope](ZLayer.succeed(DatadogUdsConfig(socketPath)))
       server     <- testServer(
                       ZIO.attempt {
                         val ch = UnixDatagramChannel.open()

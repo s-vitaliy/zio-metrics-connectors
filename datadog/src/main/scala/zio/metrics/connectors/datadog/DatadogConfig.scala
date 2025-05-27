@@ -65,7 +65,7 @@ final case class DatadogNetworkConfig(
  * @param entityId
  *  An optional entity ID value used with an internal tag for tracking client entity
  */
-final case class DatadogUdsConfigConfig(
+final case class DatadogUdsConfig(
   path: String,
   histogramSendInterval: Option[Duration] = None,
   maxBatchedMetrics: Int = 10,
