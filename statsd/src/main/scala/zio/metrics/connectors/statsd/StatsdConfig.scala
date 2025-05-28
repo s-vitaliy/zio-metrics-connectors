@@ -6,6 +6,8 @@ final case class StatsdConfig(
   host: String,
   port: Int)
 
+final case class DatagramSocketConfig(path: String)
+
 object StatsdConfig {
 
   val default: StatsdConfig =

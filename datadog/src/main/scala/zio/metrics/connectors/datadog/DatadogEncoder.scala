@@ -9,13 +9,13 @@ case object DatadogEncoder {
 
   private val BUF_PER_METRIC = 128
 
-  def encoder(config: DatadogConfig): MetricEvent => Task[Chunk[Byte]] = {
+  def encoder(config: DatadogPublisherConfig): MetricEvent => Task[Chunk[Byte]] = {
     val encoder = makeStatsdEncoder(config)
     event => ZIO.attempt(Chunk.fromArray(encoder.encodeEvent(event).toString().getBytes()))
   }
 
   def histogramEncoder(
-    config: DatadogConfig,
+    config: DatadogPublisherConfig,
   ): (MetricKey[MetricKeyType.Histogram], NonEmptyChunk[Double]) => Chunk[Byte] = {
     val encoder = makeStatsdEncoder(config)
 
@@ -27,7 +27,7 @@ case object DatadogEncoder {
     (key, values) => Chunk.fromArray(encodeHistogramValues(key, values).toString().getBytes())
   }
 
-  private def makeStatsdEncoder(config: DatadogConfig): StatsdEncoder =
+  private def makeStatsdEncoder(config: DatadogPublisherConfig): StatsdEncoder =
     StatsdEncoder(
       config.entityId.map(eid => MetricLabel("dd.internal.entity_id", eid)).toList,
       config.containerId.map(cidString),

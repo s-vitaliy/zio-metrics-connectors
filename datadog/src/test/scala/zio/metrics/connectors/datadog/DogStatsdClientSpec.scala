@@ -4,52 +4,25 @@ import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel
 import java.nio.file.{Files, Path}
-
 import zio._
 import zio.test._
 import zio.test.TestAspect._
-
 import jnr.unixsocket.{UnixDatagramChannel, UnixSocketAddress}
+import zio.metrics.connectors.statsd.{DatagramSocketClient, DatagramSocketConfig}
 
 object DogStatsdClientSpec extends ZIOSpecDefault {
 
   override def spec = suite("The DogStatsdClient should")(
-    writeViaNetwork,
     writeViaUds,
   ) @@ timed @@ timeoutWarning(60.seconds) @@ TestAspect.timeout(90.seconds) @@ TestAspect.withLiveClock
 
-  private val writeViaNetwork = test("be able to write data using network") {
-    for {
-      // Arrange
-      address <- ZIO.attempt(new InetSocketAddress("localhost", 0))
-      promise <- Promise.make[Nothing, Unit]
-      channel <- ZIO.attempt {
-                   val ch = DatagramChannel.open()
-                   ch.bind(address)
-                   ch
-                 }
-      port     = channel.getLocalAddress.asInstanceOf[InetSocketAddress].getPort
-      client  <- DogStatsdClient.make.provideSome[Scope](
-                   ZLayer.succeed(DatadogNetworkConfig(address.getHostString, port)),
-                 )
-      server  <- testServer(
-                   ZIO.succeed(channel),
-                   promise,
-                 )
-      // Act
-      _       <- ZIO.attempt(client.send(Chunk.fromArray("testMetric:1|g".getBytes)))
-      result  <- server.join
-
-      // Assert
-    } yield assertTrue(result == "testMetric:1|g")
-  }
 
   private val writeViaUds = test("be able to write data to unix domain socket") {
     for {
       // Arrange
       promise    <- Promise.make[Nothing, Unit]
       socketPath <- getTempPath
-      client     <- DogStatsdClient.make.provideSome[Scope](ZLayer.succeed(DatadogUdsConfig(socketPath)))
+      client     <- DatagramSocketClient.make.provideSome[Scope](ZLayer.succeed(DatagramSocketConfig(socketPath)))
       server     <- testServer(
                       ZIO.attempt {
                         val ch = UnixDatagramChannel.open()
