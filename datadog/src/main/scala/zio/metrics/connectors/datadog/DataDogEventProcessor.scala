@@ -11,11 +11,11 @@ import zio.metrics.connectors.statsd.StatsdClient
 object DataDogEventProcessor {
 
   def make(
-    client: DogStatsdClient,
+    client: StatsdClient,
     queue: RingBuffer[(MetricKey[MetricKeyType.Histogram], Double)],
-  ): ZIO[DatadogConfig & MetricsConfig, Nothing, Unit] =
+  ): ZIO[DatadogPublisherConfig & MetricsConfig, Nothing, Unit] =
     for {
-      datadogConfig <- ZIO.service[DatadogConfig]
+      datadogConfig <- ZIO.service[DatadogPublisherConfig]
       metricsConfig <- ZIO.service[MetricsConfig]
       encoder        = DatadogEncoder.histogramEncoder(datadogConfig)
       _             <- ZIO

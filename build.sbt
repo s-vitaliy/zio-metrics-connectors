@@ -62,17 +62,17 @@ lazy val core =
 lazy val statsd =
   project
     .in(file("statsd"))
-    .settings(stdSettings("zio.metrics.connectors.statsd"))
+    .settings(
+      stdSettings("zio.metrics.connectors.statsd"),
+      libraryDependencies ++= Seq("com.github.jnr" % "jnr-unixsocket" % "0.38.23"),
+    )
     .enablePlugins(BuildInfoPlugin)
     .dependsOn(core % "compile->compile;test->test")
 
 lazy val datadog =
   project
     .in(file("datadog"))
-    .settings(
-      stdSettings("zio.metrics.connectors.datadog"),
-      libraryDependencies ++= Seq("com.github.jnr" % "jnr-unixsocket" % "0.38.23"),
-    )
+    .settings(stdSettings("zio.metrics.connectors.datadog"))
     .settings(buildInfoSettings("zio.metrics.connectors.datadog"))
     .enablePlugins(BuildInfoPlugin)
     .dependsOn(
