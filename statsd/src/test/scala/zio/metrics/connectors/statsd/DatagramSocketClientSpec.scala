@@ -1,6 +1,5 @@
-package zio.metrics.connectors.datadog
+package zio.metrics.connectors.statsd
 
-import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel
 import java.nio.file.{Files, Path}
@@ -11,45 +10,18 @@ import zio.test.TestAspect._
 
 import jnr.unixsocket.{UnixDatagramChannel, UnixSocketAddress}
 
-object DogStatsdClientSpec extends ZIOSpecDefault {
+object DatagramSocketClientSpec extends ZIOSpecDefault {
 
-  override def spec = suite("The DogStatsdClient should")(
-    writeViaNetwork,
+  override def spec = suite("The DatagramSocketClient should")(
     writeViaUds,
   ) @@ timed @@ timeoutWarning(60.seconds) @@ TestAspect.timeout(90.seconds) @@ TestAspect.withLiveClock
-
-  private val writeViaNetwork = test("be able to write data using network") {
-    for {
-      // Arrange
-      address <- ZIO.attempt(new InetSocketAddress("localhost", 0))
-      promise <- Promise.make[Nothing, Unit]
-      channel <- ZIO.attempt {
-                   val ch = DatagramChannel.open()
-                   ch.bind(address)
-                   ch
-                 }
-      port     = channel.getLocalAddress.asInstanceOf[InetSocketAddress].getPort
-      client  <- DogStatsdClient.make.provideSome[Scope](
-                   ZLayer.succeed(DatadogNetworkConfig(address.getHostString, port)),
-                 )
-      server  <- testServer(
-                   ZIO.succeed(channel),
-                   promise,
-                 )
-      // Act
-      _       <- ZIO.attempt(client.send(Chunk.fromArray("testMetric:1|g".getBytes)))
-      result  <- server.join
-
-      // Assert
-    } yield assertTrue(result == "testMetric:1|g")
-  }
 
   private val writeViaUds = test("be able to write data to unix domain socket") {
     for {
       // Arrange
       promise    <- Promise.make[Nothing, Unit]
       socketPath <- getTempPath
-      client     <- DogStatsdClient.make.provideSome[Scope](ZLayer.succeed(DatadogUdsConfig(socketPath)))
+      client     <- DatagramSocketClient.make.provideSome[Scope](ZLayer.succeed(DatagramSocketConfig(socketPath)))
       server     <- testServer(
                       ZIO.attempt {
                         val ch = UnixDatagramChannel.open()
@@ -70,7 +42,7 @@ object DogStatsdClientSpec extends ZIOSpecDefault {
 
   /**
    * Retrieves the temporary path for the Unix domain socket.
-   * If the system property `java.io.tmpdir` is not set, defaults to `/tmp/dogstatsd.sock`.
+   * If the system property `java.io.tmpdir` is not set, defaults to `/tmp/socket.sock`.
    * This method is used to ensure that the socket path is consistent across different environments and
    * the socket path can be overridden if needed.
    * @return A ZIO effect that returns the path as a String
@@ -78,8 +50,8 @@ object DogStatsdClientSpec extends ZIOSpecDefault {
   private def getTempPath = for {
     maybePath <- System.property("java.io.tmpdir")
   } yield maybePath match {
-    case None => "/tmp/dogstatsd.sock"
-    case path => s"$path/dogstatsd.sock"
+    case None => "/tmp/socket.sock"
+    case path => s"$path/socket.sock"
   }
 
   /**

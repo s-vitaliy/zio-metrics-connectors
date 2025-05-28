@@ -5,19 +5,7 @@ import java.time.Duration
 import zio.{ULayer, ZLayer}
 
 /**
- * Base trait for Datadog configuration
- */
-trait DatadogConfig {
-  val histogramSendInterval: Option[Duration]
-  val maxBatchedMetrics: Int
-  val containerId: Option[String]
-  val entityId: Option[String]
-  val maxQueueSize: Int
-  val sendUnchanged: Boolean
-}
-
-/**
- * Datadog Specific configuration used for sending using UDP over a network connection.
+ * Datadog Specific configuration
  *
  * @param host
  *  Agent host name
@@ -36,7 +24,8 @@ trait DatadogConfig {
  * @param entityId
  *  An optional entity ID value used with an internal tag for tracking client entity
  */
-final case class DatadogNetworkConfig(
+@deprecated("Use zio.metrics.connectors.DatadogPublisherConfig instead", "2.4.0")
+final case class DatadogConfig(
   host: String,
   port: Int,
   histogramSendInterval: Option[Duration] = None,
@@ -45,13 +34,22 @@ final case class DatadogNetworkConfig(
   containerId: Option[String] = None,
   entityId: Option[String] = None,
   sendUnchanged: Boolean = false)
-    extends DatadogConfig
+
+object DatadogConfig {
+
+  val default: DatadogConfig =
+    DatadogConfig(
+      host = "localhost",
+      port = 8125,
+      histogramSendInterval = None,
+    )
+
+  val defaultLayer: ULayer[DatadogConfig] = ZLayer.succeed(default)
+}
 
 /**
- * Datadog Specific configuration used for sending metrics using UDP over a Unix Domain Socket (UDS).
+ * Datadog Specific publisher configuration
  *
- * @param path
- *  Path to the Unix Domain Socket (UDS) for the Datadog agent
  * @param histogramSendInterval
  *  Override for when the distributions should be sent faster than the general metrics frequency.
  *  This is typically with an app that generates lots of distributions, but doesn't want to send other metrics
@@ -65,24 +63,10 @@ final case class DatadogNetworkConfig(
  * @param entityId
  *  An optional entity ID value used with an internal tag for tracking client entity
  */
-final case class DatadogUdsConfig(
-  path: String,
+case class DatadogPublisherConfig(
   histogramSendInterval: Option[Duration] = None,
   maxBatchedMetrics: Int = 10,
   maxQueueSize: Int = 100000,
   containerId: Option[String] = None,
   entityId: Option[String] = None,
   sendUnchanged: Boolean = false)
-    extends DatadogConfig
-
-object DatadogConfig {
-
-  val default: DatadogNetworkConfig =
-    DatadogNetworkConfig(
-      host = "localhost",
-      port = 8125,
-      histogramSendInterval = None,
-    )
-
-  val defaultLayer: ULayer[DatadogConfig] = ZLayer.succeed(default)
-}
