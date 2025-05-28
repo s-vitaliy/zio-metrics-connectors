@@ -2,9 +2,9 @@ package zio.metrics.connectors
 
 import zio._
 import zio.internal.RingBuffer
+import zio.metrics.{MetricClient, MetricKey, MetricKeyType}
 import zio.metrics.connectors.internal.MetricsClient
 import zio.metrics.connectors.statsd.{StatsdClient, StatsdConfig}
-import zio.metrics.{MetricClient, MetricKey, MetricKeyType}
 
 package object datadog {
 
@@ -21,7 +21,7 @@ package object datadog {
                             config.entityId,
                             config.sendUnchanged,
                           )
-        clt <- StatsdClient.make.provideSome[Scope](ZLayer.succeed(StatsdConfig(config.host, config.port)))
+        clt            <- StatsdClient.make.provideSome[Scope](ZLayer.succeed(StatsdConfig(config.host, config.port)))
         queue           = RingBuffer.apply[(MetricKey[MetricKeyType.Histogram], Double)](config.maxQueueSize)
         listener        = new DataDogListener(queue)
         _              <- Unsafe.unsafe(unsafe =>
