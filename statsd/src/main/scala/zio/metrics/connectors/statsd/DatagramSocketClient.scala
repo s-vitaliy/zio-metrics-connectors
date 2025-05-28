@@ -9,13 +9,13 @@ import zio._
 
 import jnr.unixsocket.{UnixDatagramChannel, UnixSocketAddress}
 
-private[connectors] trait DogStatsdSocketWriter {
+private[connectors] trait SocketWriter {
   private[connectors] def write(byteBuffer: ByteBuffer): Try[Long]
 }
 
 private[connectors] object DatagramSocketClient {
 
-  private class Live(writer: DogStatsdSocketWriter) extends StatsdClient {
+  private class Live(writer: SocketWriter) extends StatsdClient {
 
     override def send(chunk: Chunk[Byte]): Long =
       writer.write(ByteBuffer.wrap(chunk.toArray)) match {
@@ -28,11 +28,11 @@ private[connectors] object DatagramSocketClient {
       }
   }
 
-  private class UdsWriter(channel: DatagramChannel, address: UnixSocketAddress) extends DogStatsdSocketWriter {
+  private class UdsWriter(channel: DatagramChannel, address: UnixSocketAddress) extends SocketWriter {
     private[connectors] def write(byteBuffer: ByteBuffer): Try[Long] = Try(channel.send(byteBuffer, address).toLong)
   }
 
-  private def udsWriter(path: String): ZIO[Scope, Throwable, DogStatsdSocketWriter] =
+  private def udsWriter(path: String): ZIO[Scope, Throwable, SocketWriter] =
     for {
       channel <- ZIO.fromAutoCloseable(ZIO.attempt {
                    val channel = UnixDatagramChannel.open()
