@@ -24,7 +24,7 @@ object DatadogEncoderSpec extends ZIOSpecDefault {
     val name     = "testHistogram"
     val tagName  = "testTag"
     val tagValue = "tagValue"
-    val encoder  = DatadogEncoder.histogramEncoder(DatadogConfig.default)
+    val encoder  = DatadogEncoder.histogramEncoder(DatadogPublisherConfig())
     val key      = MetricKey.histogram(name, Boundaries(Chunk.empty)).tagged(tagName, tagValue)
     val encoded  = new String(encoder(key, NonEmptyChunk(1.0)).toArray)
     assertTrue(encoded == s"$name:1|d|#$tagName:$tagValue")
@@ -34,7 +34,7 @@ object DatadogEncoderSpec extends ZIOSpecDefault {
     val name     = "testHistogram"
     val tagName  = "testTag"
     val tagValue = "tagValue"
-    val encoder  = DatadogEncoder.histogramEncoder(DatadogConfig.default)
+    val encoder  = DatadogEncoder.histogramEncoder(DatadogPublisherConfig())
     val key      = MetricKey.histogram(name, Boundaries(Chunk.empty)).tagged(tagName, tagValue)
     val encoded  = new String(encoder(key, NonEmptyChunk(1.0, 2.0)).toArray)
     assertTrue(encoded == s"$name:1:2|d|#$tagName:$tagValue")
@@ -43,7 +43,7 @@ object DatadogEncoderSpec extends ZIOSpecDefault {
   private val encodeContainerId = test("encode container ID") {
     val containerId = "aaa"
     val name        = "m1"
-    val encoder     = DatadogEncoder.encoder(DatadogConfig.default.copy(containerId = Some(containerId)))
+    val encoder     = DatadogEncoder.encoder(DatadogPublisherConfig(containerId = Some(containerId)))
     val event       = MetricEvent.New(MetricKey.gauge(name), MetricState.Gauge(1), Instant.now())
     for {
       encoded <- encoder(event)
@@ -54,7 +54,7 @@ object DatadogEncoderSpec extends ZIOSpecDefault {
   private val encodeEntityId = test("encode entity ID") {
     val entityId = "aaa"
     val name     = "m1"
-    val encoder  = DatadogEncoder.encoder(DatadogConfig.default.copy(entityId = Some(entityId)))
+    val encoder  = DatadogEncoder.encoder(DatadogPublisherConfig(entityId = Some(entityId)))
     val event    = MetricEvent.New(MetricKey.gauge(name), MetricState.Gauge(1), Instant.now())
     for {
       encoded <- encoder(event)
@@ -67,7 +67,7 @@ object DatadogEncoderSpec extends ZIOSpecDefault {
     val name        = "testHistogram"
     val tagName     = "testTag"
     val tagValue    = "tagValue"
-    val encoder     = DatadogEncoder.histogramEncoder(DatadogConfig.default.copy(containerId = Some(containerId)))
+    val encoder     = DatadogEncoder.histogramEncoder(DatadogPublisherConfig(containerId = Some(containerId)))
     val key         = MetricKey.histogram(name, Boundaries(Chunk.empty)).tagged(tagName, tagValue)
     val encoded     = new String(encoder(key, NonEmptyChunk(1.0, 2.0)).toArray)
     assertTrue(encoded == s"$name:1:2|d|#$tagName:$tagValue|c:$containerId")
@@ -78,7 +78,7 @@ object DatadogEncoderSpec extends ZIOSpecDefault {
     val name     = "testHistogram"
     val tagName  = "testTag"
     val tagValue = "tagValue"
-    val encoder  = DatadogEncoder.histogramEncoder(DatadogConfig.default.copy(entityId = Some(entityId)))
+    val encoder  = DatadogEncoder.histogramEncoder(DatadogPublisherConfig(entityId = Some(entityId)))
     val key      = MetricKey.histogram(name, Boundaries(Chunk.empty)).tagged(tagName, tagValue)
     val encoded  = new String(encoder(key, NonEmptyChunk(1.0, 2.0)).toArray)
     assertTrue(encoded == s"$name:1:2|d|#dd.internal.entity_id:aaa,$tagName:$tagValue")
