@@ -105,9 +105,9 @@ Now, we can override the `run` method of our ZIO `App` and simply provide a `dat
   override def run: ZIO[ZIOAppArgs with Scope, Any, Any] =
     execute
       .provide(
-        ZLayer.succeed(statsd.StatsdConfig("localhost", 8125)),
         ZLayer.succeed(MetricsConfig(100.millis)),
-        ZLayer.succeed(DatadogPublisherConfig()),
+        ZLayer.succeed(statsd.StatsdConfig("localhost", 8125)),
+        ZLayer.succeed(datadog.DatadogPublisherConfig()),
         statsdClient.live,
         datadog.live,
       )
@@ -122,8 +122,8 @@ via a UDS socket this can be used with datadog agent starting with version 6.0.0
     execute
       .provide(
         ZLayer.succeed(MetricsConfig(100.millis)),
-        ZLayer.succeed(DatadogPublisherConfig()),
-        ZLayer.succeed(DatagramSocketConfig("/var/run/datadog/datadog.sock")),
+        ZLayer.succeed(statsd.DatagramSocketConfig("/var/run/datadog/datadog.sock")),
+        ZLayer.succeed(datadog.DatadogPublisherConfig()),
         statsdClient.liveDatagram,
         datadog.live,
       )

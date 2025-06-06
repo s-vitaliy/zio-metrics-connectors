@@ -21,7 +21,7 @@ package object datadog {
                        ZIO.succeed(MetricClient.removeListener(listener)(unsafe)),
                      ),
                    )
-        _       <- DataDogEventProcessor.make(clt, queue).provideSome[MetricsConfig](ZLayer.succeed(config))
+        _       <- DataDogEventProcessor.make(clt, queue)
         _       <- MetricsClient.make(datadogHandler(clt, config))
       } yield (),
     )
