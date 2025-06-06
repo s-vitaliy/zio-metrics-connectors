@@ -10,9 +10,8 @@ case object DatadogEncoder {
   private val BUF_PER_METRIC = 128
 
   @deprecated("Use the overload that accepts DatadogPublisherConfig instead", "2.4.0")
-  def encoder(config: DatadogConfig): MetricEvent => Task[Chunk[Byte]] = {
+  def encoder(config: DatadogConfig): MetricEvent => Task[Chunk[Byte]] =
     encoder(DatadogConfig.toPublisherConfig(config))
-  }
 
   def encoder(config: DatadogPublisherConfig): MetricEvent => Task[Chunk[Byte]] = {
     val encoder = makeStatsdEncoder(config)
@@ -21,10 +20,9 @@ case object DatadogEncoder {
 
   @deprecated("Use the overload that accepts DatadogPublisherConfig instead", "2.4.0")
   def histogramEncoder(
-     config: DatadogConfig,
-  ): (MetricKey[MetricKeyType.Histogram], NonEmptyChunk[Double]) => Chunk[Byte] = {
-   histogramEncoder(DatadogConfig.toPublisherConfig(config))
-  }
+    config: DatadogConfig,
+  ): (MetricKey[MetricKeyType.Histogram], NonEmptyChunk[Double]) => Chunk[Byte] =
+    histogramEncoder(DatadogConfig.toPublisherConfig(config))
 
   def histogramEncoder(
     config: DatadogPublisherConfig,

@@ -46,16 +46,15 @@ object DatadogConfig {
 
   val defaultLayer: ULayer[DatadogConfig] = ZLayer.succeed(default)
 
-  private [connectors] def toPublisherConfig(config: DatadogConfig): DatadogPublisherConfig = {
+  private[connectors] def toPublisherConfig(config: DatadogConfig): DatadogPublisherConfig =
     DatadogPublisherConfig(
       histogramSendInterval = config.histogramSendInterval,
       maxBatchedMetrics = config.maxBatchedMetrics,
       maxQueueSize = config.maxQueueSize,
       containerId = config.containerId,
       entityId = config.entityId,
-      sendUnchanged = config.sendUnchanged
+      sendUnchanged = config.sendUnchanged,
     )
-  }
 }
 
 /**

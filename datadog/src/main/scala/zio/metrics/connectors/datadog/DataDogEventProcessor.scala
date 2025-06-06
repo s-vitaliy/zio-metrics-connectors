@@ -16,25 +16,24 @@ object DataDogEventProcessor {
     datadogPublisherConfig: DatadogPublisherConfig,
   ): ZIO[MetricsConfig, Nothing, Unit] =
     for {
-      encoder <- ZIO.succeed(DatadogEncoder.histogramEncoder(datadogPublisherConfig))
+      encoder       <- ZIO.succeed(DatadogEncoder.histogramEncoder(datadogPublisherConfig))
       metricsConfig <- ZIO.service[MetricsConfig]
-      _       <- ZIO
-                   .attempt {
-                     while (!queue.isEmpty()) {
-                       val items  = queue.pollUpTo(datadogPublisherConfig.maxBatchedMetrics)
-                       val values = groupMap(items)(_._1)(_._2)
-                       values.foreach { case (key, value) =>
-                         val encoded = encoder(key, NonEmptyChunk.fromChunk(value).get)
-                         client.send(encoded)
-                       }
-                     }
-                   }
-                   .ignoreLogged
-                   .schedule(Schedule.fixed(datadogPublisherConfig.histogramSendInterval.getOrElse(metricsConfig.interval)))
-                   .forkDaemon
-                   .unit
+      _             <- ZIO
+                         .attempt {
+                           while (!queue.isEmpty()) {
+                             val items  = queue.pollUpTo(datadogPublisherConfig.maxBatchedMetrics)
+                             val values = groupMap(items)(_._1)(_._2)
+                             values.foreach { case (key, value) =>
+                               val encoded = encoder(key, NonEmptyChunk.fromChunk(value).get)
+                               client.send(encoded)
+                             }
+                           }
+                         }
+                         .ignoreLogged
+                         .schedule(Schedule.fixed(datadogPublisherConfig.histogramSendInterval.getOrElse(metricsConfig.interval)))
+                         .forkDaemon
+                         .unit
     } yield ()
-
 
   @deprecated("Use the overload that accepts DatadogPublisherConfig instead", "2.4.0")
   def make(

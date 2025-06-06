@@ -11,24 +11,21 @@ package object statsd {
       StatsdClient.make.flatMap(clt => MetricsClient.make(statsdHandler(clt))).unit,
     )
 
-
-  lazy val live: ZLayer[StatsdConfig & MetricsConfig, Nothing, StatsdClient] = {
+  lazy val live: ZLayer[StatsdConfig & MetricsConfig, Nothing, StatsdClient] =
     ZLayer.scoped {
-        for {
-          config <- ZIO.service[StatsdConfig]
-          client    <- StatsdClient.make.provideSome[Scope](ZLayer.succeed(config))
-        } yield client
+      for {
+        config <- ZIO.service[StatsdConfig]
+        client <- StatsdClient.make.provideSome[Scope](ZLayer.succeed(config))
+      } yield client
     }
-  }
 
-  lazy val liveDatagram: ZLayer[DatagramSocketConfig & MetricsConfig, Nothing, StatsdClient] = {
+  lazy val liveDatagram: ZLayer[DatagramSocketConfig & MetricsConfig, Nothing, StatsdClient] =
     ZLayer.scoped {
-        for {
-          config <- ZIO.service[DatagramSocketConfig]
-          client    <- DatagramSocketClient.make.provideSome[Scope](ZLayer.succeed(config))
-        } yield client
+      for {
+        config <- ZIO.service[DatagramSocketConfig]
+        client <- DatagramSocketClient.make.provideSome[Scope](ZLayer.succeed(config))
+      } yield client
     }
-  }
 
   private[connectors] def statsdHandler(clt: StatsdClient): Iterable[MetricEvent] => UIO[Unit] = events => {
     val evtFilter: MetricEvent => Boolean = {
