@@ -13,26 +13,37 @@ object DataDogEventProcessor {
   def make(
     client: StatsdClient,
     queue: RingBuffer[(MetricKey[MetricKeyType.Histogram], Double)],
-  ): ZIO[DatadogPublisherConfig & MetricsConfig, Nothing, Unit] =
+    datadogPublisherConfig: DatadogPublisherConfig,
+  ): ZIO[MetricsConfig, Nothing, Unit] =
     for {
-      datadogConfig <- ZIO.service[DatadogPublisherConfig]
+      encoder <- ZIO.succeed(DatadogEncoder.histogramEncoder(datadogPublisherConfig))
       metricsConfig <- ZIO.service[MetricsConfig]
-      encoder        = DatadogEncoder.histogramEncoder(datadogConfig)
-      _             <- ZIO
-                         .attempt {
-                           while (!queue.isEmpty()) {
-                             val items  = queue.pollUpTo(datadogConfig.maxBatchedMetrics)
-                             val values = groupMap(items)(_._1)(_._2)
-                             values.foreach { case (key, value) =>
-                               val encoded = encoder(key, NonEmptyChunk.fromChunk(value).get)
-                               client.send(encoded)
-                             }
-                           }
-                         }
-                         .ignoreLogged
-                         .schedule(Schedule.fixed(datadogConfig.histogramSendInterval.getOrElse(metricsConfig.interval)))
-                         .forkDaemon
-                         .unit
+      _       <- ZIO
+                   .attempt {
+                     while (!queue.isEmpty()) {
+                       val items  = queue.pollUpTo(datadogPublisherConfig.maxBatchedMetrics)
+                       val values = groupMap(items)(_._1)(_._2)
+                       values.foreach { case (key, value) =>
+                         val encoded = encoder(key, NonEmptyChunk.fromChunk(value).get)
+                         client.send(encoded)
+                       }
+                     }
+                   }
+                   .ignoreLogged
+                   .schedule(Schedule.fixed(datadogPublisherConfig.histogramSendInterval.getOrElse(metricsConfig.interval)))
+                   .forkDaemon
+                   .unit
+    } yield ()
+
+
+  @deprecated("Use the overload that accepts DatadogPublisherConfig instead", "2.4.0")
+  def make(
+    client: StatsdClient,
+    queue: RingBuffer[(MetricKey[MetricKeyType.Histogram], Double)],
+  ): ZIO[DatadogConfig & MetricsConfig, Nothing, Unit] =
+    for {
+      datadogConfig <- ZIO.service[DatadogConfig]
+      _             <- make(client, queue, DatadogConfig.toPublisherConfig(datadogConfig))
     } yield ()
 
   // Backwards compatibility for 2.12

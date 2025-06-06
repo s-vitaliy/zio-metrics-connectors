@@ -12,25 +12,17 @@ package object datadog {
   lazy val datadogLayer: ZLayer[DatadogConfig & MetricsConfig, Nothing, Unit] =
     ZLayer.scoped(
       for {
-        config         <- ZIO.service[DatadogConfig]
-        publisherConfig = DatadogPublisherConfig(
-                            config.histogramSendInterval,
-                            config.maxBatchedMetrics,
-                            config.maxQueueSize,
-                            config.containerId,
-                            config.entityId,
-                            config.sendUnchanged,
-                          )
-        clt            <- StatsdClient.make.provideSome[Scope](ZLayer.succeed(StatsdConfig(config.host, config.port)))
-        queue           = RingBuffer.apply[(MetricKey[MetricKeyType.Histogram], Double)](config.maxQueueSize)
-        listener        = new DataDogListener(queue)
-        _              <- Unsafe.unsafe(unsafe =>
-                            ZIO.acquireRelease(ZIO.succeed(MetricClient.addListener(listener)(unsafe)))(_ =>
-                              ZIO.succeed(MetricClient.removeListener(listener)(unsafe)),
-                            ),
-                          )
-        _              <- DataDogEventProcessor.make(clt, queue).provideSome[MetricsConfig](ZLayer.succeed(publisherConfig))
-        _              <- MetricsClient.make(datadogHandler(clt, publisherConfig))
+        config  <- ZIO.service[DatadogConfig]
+        clt     <- StatsdClient.make.provideSome[Scope](ZLayer.succeed(StatsdConfig(config.host, config.port)))
+        queue    = RingBuffer.apply[(MetricKey[MetricKeyType.Histogram], Double)](config.maxQueueSize)
+        listener = new DataDogListener(queue)
+        _       <- Unsafe.unsafe(unsafe =>
+                     ZIO.acquireRelease(ZIO.succeed(MetricClient.addListener(listener)(unsafe)))(_ =>
+                       ZIO.succeed(MetricClient.removeListener(listener)(unsafe)),
+                     ),
+                   )
+        _       <- DataDogEventProcessor.make(clt, queue).provideSome[MetricsConfig](ZLayer.succeed(config))
+        _       <- MetricsClient.make(datadogHandler(clt, config))
       } yield (),
     )
 
@@ -46,10 +38,14 @@ package object datadog {
                        ZIO.succeed(MetricClient.removeListener(listener)(unsafe)),
                      ),
                    )
-        _       <- DataDogEventProcessor.make(clt, queue)
+        _       <- DataDogEventProcessor.make(clt, queue, config)
         _       <- MetricsClient.make(datadogHandler(clt, config))
       } yield (),
     )
+
+  @deprecated("Use the overload that accepts DatadogPublisherConfig instead", "2.4.0")
+  private def eventFilter(config: DatadogConfig): MetricEvent => Boolean =
+    eventFilter(DatadogConfig.toPublisherConfig(config))
 
   private def eventFilter(config: DatadogPublisherConfig): MetricEvent => Boolean =
     if (config.sendUnchanged) {
@@ -58,6 +54,12 @@ package object datadog {
       case MetricEvent.Unchanged(_, _, _) => false
       case e                              => !e.metricKey.keyType.isInstanceOf[metrics.MetricKeyType.Histogram]
     }
+
+  @deprecated("Use the overload that accepts DatadogPublisherConfig instead", "2.4.0")
+  private[connectors] def datadogHandler(
+    client: StatsdClient,
+    config: DatadogConfig,
+  ): Iterable[MetricEvent] => UIO[Unit] = datadogHandler(client, DatadogConfig.toPublisherConfig(config))
 
   private[connectors] def datadogHandler(
     client: StatsdClient,
