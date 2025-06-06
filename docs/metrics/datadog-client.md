@@ -86,7 +86,7 @@ val instrumentedSample = new InstrumentedSample() {}
 ```
 
 For DataDog we do need to spin up our own server. Rather we need to provide a client that can send datagrams
-to a specified UDP destination.
+to a specified UDP destination or a unix domain socket.
 
 Again we need an effect that runs our instrumented code until the user presses any key:
 
