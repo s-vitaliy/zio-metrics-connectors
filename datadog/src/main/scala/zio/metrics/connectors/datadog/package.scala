@@ -43,7 +43,6 @@ package object datadog {
       } yield (),
     )
 
-
   private def eventFilter(config: DatadogPublisherConfig): MetricEvent => Boolean =
     if (config.sendUnchanged) {
       !_.metricKey.keyType.isInstanceOf[metrics.MetricKeyType.Histogram]
