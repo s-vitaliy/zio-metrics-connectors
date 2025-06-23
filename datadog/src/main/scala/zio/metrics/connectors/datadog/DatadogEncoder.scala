@@ -37,10 +37,6 @@ case object DatadogEncoder {
     (key, values) => Chunk.fromArray(encodeHistogramValues(key, values).toString().getBytes())
   }
 
-  @deprecated("Use the overload that accepts DatadogPublisherConfig instead", "2.4.0")
-  private def makeStatsdEncoder(config: DatadogConfig): StatsdEncoder =
-    makeStatsdEncoder(DatadogConfig.toPublisherConfig(config))
-
   private def makeStatsdEncoder(config: DatadogPublisherConfig): StatsdEncoder =
     StatsdEncoder(
       config.entityId.map(eid => MetricLabel("dd.internal.entity_id", eid)).toList,

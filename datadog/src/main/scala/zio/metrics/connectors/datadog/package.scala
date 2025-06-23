@@ -43,9 +43,6 @@ package object datadog {
       } yield (),
     )
 
-  @deprecated("Use the overload that accepts DatadogPublisherConfig instead", "2.4.0")
-  private def eventFilter(config: DatadogConfig): MetricEvent => Boolean =
-    eventFilter(DatadogConfig.toPublisherConfig(config))
 
   private def eventFilter(config: DatadogPublisherConfig): MetricEvent => Boolean =
     if (config.sendUnchanged) {

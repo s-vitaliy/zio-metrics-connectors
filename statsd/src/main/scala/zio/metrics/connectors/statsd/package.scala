@@ -5,13 +5,16 @@ import zio.metrics.connectors.internal.MetricsClient
 
 package object statsd {
 
-  @deprecated("Use zio.metrics.connectors.datadog.live instead", "2.4.0")
+  @deprecated("Use the statsdUDP or statsdUDS from the zio.metrics.connectors.statsd package instead", "2.4.0")
   lazy val statsdLayer: ZLayer[StatsdConfig & MetricsConfig, Nothing, Unit] =
     ZLayer.scoped(
       StatsdClient.make.flatMap(clt => MetricsClient.make(statsdHandler(clt))).unit,
     )
 
-  lazy val live: ZLayer[StatsdConfig & MetricsConfig, Nothing, StatsdClient] =
+  /**
+   * Creates a layer that provides a StatsdClient that sends metrics over UDP network protocol.
+   */
+  lazy val statsdUDP: ZLayer[StatsdConfig & MetricsConfig, Nothing, StatsdClient] =
     ZLayer.scoped {
       for {
         config <- ZIO.service[StatsdConfig]
@@ -19,7 +22,10 @@ package object statsd {
       } yield client
     }
 
-  lazy val liveDatagram: ZLayer[DatagramSocketConfig & MetricsConfig, Nothing, StatsdClient] =
+  /**
+   * Creates a layer that provides a StatsdClient that sends metrics over unix domain socket (UDS).
+   */
+  lazy val statsdUDS: ZLayer[DatagramSocketConfig & MetricsConfig, Nothing, StatsdClient] =
     ZLayer.scoped {
       for {
         config <- ZIO.service[DatagramSocketConfig]

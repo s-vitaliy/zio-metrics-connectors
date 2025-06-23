@@ -20,10 +20,8 @@ private[connectors] object DatagramSocketClient {
     override def send(chunk: Chunk[Byte]): Long =
       writer.write(ByteBuffer.wrap(chunk.toArray)) match {
         case Success(value) =>
-          // println(s"Sent UDP data [$value]")
           value
         case Failure(_)     =>
-          // t.printStackTrace()
           0L
       }
   }
