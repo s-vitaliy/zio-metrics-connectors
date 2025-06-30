@@ -5,10 +5,33 @@ import zio.metrics.connectors.internal.MetricsClient
 
 package object statsd {
 
+  @deprecated("Use the statsdUDP or statsdUDS from the zio.metrics.connectors.statsd package instead", "2.4.0")
   lazy val statsdLayer: ZLayer[StatsdConfig & MetricsConfig, Nothing, Unit] =
     ZLayer.scoped(
       StatsdClient.make.flatMap(clt => MetricsClient.make(statsdHandler(clt))).unit,
     )
+
+  /**
+   * Creates a layer that provides a StatsdClient that sends metrics over UDP network protocol.
+   */
+  lazy val statsdUDP: ZLayer[StatsdConfig & MetricsConfig, Nothing, StatsdClient] =
+    ZLayer.scoped {
+      for {
+        config <- ZIO.service[StatsdConfig]
+        client <- StatsdClient.make.provideSome[Scope](ZLayer.succeed(config))
+      } yield client
+    }
+
+  /**
+   * Creates a layer that provides a StatsdClient that sends metrics over unix domain socket (UDS).
+   */
+  lazy val statsdUDS: ZLayer[DatagramSocketConfig & MetricsConfig, Nothing, StatsdClient] =
+    ZLayer.scoped {
+      for {
+        config <- ZIO.service[DatagramSocketConfig]
+        client <- DatagramSocketClient.make.provideSome[Scope](ZLayer.succeed(config))
+      } yield client
+    }
 
   private[connectors] def statsdHandler(clt: StatsdClient): Iterable[MetricEvent] => UIO[Unit] = events => {
     val evtFilter: MetricEvent => Boolean = {

@@ -62,7 +62,10 @@ lazy val core =
 lazy val statsd =
   project
     .in(file("statsd"))
-    .settings(stdSettings("zio.metrics.connectors.statsd"))
+    .settings(
+      stdSettings("zio.metrics.connectors.statsd"),
+      libraryDependencies ++= Seq("com.github.jnr" % "jnr-unixsocket" % "0.38.23"),
+    )
     .enablePlugins(BuildInfoPlugin)
     .dependsOn(core % "compile->compile;test->test")
 

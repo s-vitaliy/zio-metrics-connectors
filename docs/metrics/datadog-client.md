@@ -86,7 +86,7 @@ val instrumentedSample = new InstrumentedSample() {}
 ```
 
 For DataDog we do need to spin up our own server. Rather we need to provide a client that can send datagrams
-to a specified UDP destination.
+to a specified UDP destination or a unix domain socket.
 
 Again we need an effect that runs our instrumented code until the user presses any key:
 
@@ -105,9 +105,27 @@ Now, we can override the `run` method of our ZIO `App` and simply provide a `dat
   override def run: ZIO[ZIOAppArgs with Scope, Any, Any] =
     execute
       .provide(
-        ZLayer.succeed(datadog.DatadogConfig("localhost", 8125)),
         ZLayer.succeed(MetricsConfig(100.millis)),
-        datadog.datadogLayer,
+        ZLayer.succeed(statsd.StatsdConfig("localhost", 8125)),
+        ZLayer.succeed(datadog.DatadogPublisherConfig()),
+        statsdClient.live,
+        datadog.live,
+      )
+      .orDie
+```
+
+Alternatively, we can use the `statsdClient.liveDatagram` layer which is a convenience layer that provides an ability to send datagrams
+via a UDS socket this can be used with datadog agent starting with version 6.0.0 on the linux platform.
+
+```scala 
+  override def run: ZIO[ZIOAppArgs with Scope, Any, Any] =
+    execute
+      .provide(
+        ZLayer.succeed(MetricsConfig(100.millis)),
+        ZLayer.succeed(statsd.DatagramSocketConfig("/var/run/datadog/datadog.sock")),
+        ZLayer.succeed(datadog.DatadogPublisherConfig()),
+        statsdClient.liveDatagram,
+        datadog.live,
       )
       .orDie
 ```
@@ -119,9 +137,8 @@ with limited functionality. The local setup is Windows 10 with WSL and Docker in
 
 In principle the setup is as follows:
 
-1. The ZIO application sends datagrams to `localhost:8125` via UDP, so we need a component picking up those datagrams.
+1. The ZIO application sends datagrams to `/var/run/datadog/datadog.sock` via the datagram unix domain socket.
 1. Run a Datadog Collector within a docker image exposing a Unix socket for datagrams.
-1. Run `socat` to listen on the UDP socket 8125 and forward incoming traffic to the Unix socket.
 1. Configure a dashboard in Datadog to visualize the metrics.
 
 ### Get and run the docker based Datadog collector
@@ -146,17 +163,6 @@ docker run --name dd-agent -e DD_API_KEY=$APIKEY -e DD_SITE=datadoghq.eu \
 As you can see, we require that the directory `/var/run/datadog` exists so that we can use it as a volume within the agent's docker container. The environment variable `DD_DOGSTATSD_SOCKET` tells the agent to use a unix socket to listen for datagrams. The socket file must reside within the mounted volume.
 
 This will start the datadog collector within docker and we have a unix socket to report our datagrams to.
-
-The next step is to create a UDP socket where our application can report its datagrams to. For our example we have chosen `socat` to forward
-UDP traffic to our unix socket:
-
-```
-sudo socat -s -u udp-recv:8125 unix-sendto:/var/run/datadog/datadog.sock
-```
-
-> You could add the `-v` parameter to the socat call to run socat in verbose mode. That would print
-> all traffic being forwarded to the console as well. This is useful to determine whether
-> datagrams are actually sent.
 
 ### Run the Datadog example
 

@@ -8,6 +8,7 @@ import zio.metrics.connectors.statsd.{StatsdClient, StatsdConfig}
 
 package object datadog {
 
+  @deprecated("Use zio.metrics.connectors.datadog.live instead", "2.4.0")
   lazy val datadogLayer: ZLayer[DatadogConfig & MetricsConfig, Nothing, Unit] =
     ZLayer.scoped(
       for {
@@ -25,7 +26,24 @@ package object datadog {
       } yield (),
     )
 
-  private def eventFilter(config: DatadogConfig): MetricEvent => Boolean =
+  lazy val live: ZLayer[StatsdClient & DatadogPublisherConfig & MetricsConfig, Nothing, Unit] =
+    ZLayer.scoped(
+      for {
+        config  <- ZIO.service[DatadogPublisherConfig]
+        clt     <- ZIO.service[StatsdClient]
+        queue    = RingBuffer.apply[(MetricKey[MetricKeyType.Histogram], Double)](config.maxQueueSize)
+        listener = new DataDogListener(queue)
+        _       <- Unsafe.unsafe(unsafe =>
+                     ZIO.acquireRelease(ZIO.succeed(MetricClient.addListener(listener)(unsafe)))(_ =>
+                       ZIO.succeed(MetricClient.removeListener(listener)(unsafe)),
+                     ),
+                   )
+        _       <- DataDogEventProcessor.make(clt, queue, config)
+        _       <- MetricsClient.make(datadogHandler(clt, config))
+      } yield (),
+    )
+
+  private def eventFilter(config: DatadogPublisherConfig): MetricEvent => Boolean =
     if (config.sendUnchanged) {
       !_.metricKey.keyType.isInstanceOf[metrics.MetricKeyType.Histogram]
     } else {
@@ -33,9 +51,15 @@ package object datadog {
       case e                              => !e.metricKey.keyType.isInstanceOf[metrics.MetricKeyType.Histogram]
     }
 
+  @deprecated("Use the overload that accepts DatadogPublisherConfig instead", "2.4.0")
   private[connectors] def datadogHandler(
     client: StatsdClient,
     config: DatadogConfig,
+  ): Iterable[MetricEvent] => UIO[Unit] = datadogHandler(client, DatadogConfig.toPublisherConfig(config))
+
+  private[connectors] def datadogHandler(
+    client: StatsdClient,
+    config: DatadogPublisherConfig,
   ): Iterable[MetricEvent] => UIO[Unit] = events => {
     val encoder = DatadogEncoder.encoder(config)
 
